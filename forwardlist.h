@@ -10,16 +10,25 @@ private:
         Node *next;
     };
 
-    class ConstIterator;
+    struct ConstNode{
+        const Type data;
+        ConstNode *next;
+    };
 
+    template<typename NodeType>
     class Iterator{
     private:
-        Node *ptr;
+        NodeType *ptr;
 
     public:
-        explicit Iterator(Node *ptr) : ptr(ptr) {}
+        explicit Iterator(NodeType *ptr) : ptr(ptr) {}
+        Iterator(const Iterator &it) : ptr(it.ptr) {}
+        template<typename OtherNodeType>
+        Iterator(const Iterator<OtherNodeType> &it)
+            : ptr(reinterpret_cast<NodeType *>(it.ptr))
+        {}
 
-        Type &operator*() { return this->ptr->data; }
+        decltype(NodeType::data) &operator*() { return this->ptr->data; }
         const Type &operator*() const { return this->ptr->data; }
 
         bool operator==(const Iterator &it) const { return this->ptr == it.ptr; }
@@ -36,75 +45,49 @@ private:
             return it;
         }
 
-        friend ConstIterator::ConstIterator(const Iterator &it);
+        friend class ForwardList;
     };
 
-    class ConstIterator{
-    private:
-        const Node *ptr;
-
-    public:
-        explicit ConstIterator(const Node *ptr) : ptr(ptr) {}
-        ConstIterator(const Iterator &it) : ptr(it.ptr) {}
-
-        const Type &operator*() const { return this->ptr->data; }
-
-        bool operator==(const ConstIterator &it) const { return this->ptr == it.ptr; }
-        bool operator!=(const ConstIterator &it) const { return !(*this == it); }
-
-        ConstIterator &operator++(){
-            this->ptr = this->ptr->next;
-            return *this;
-        }
-
-        ConstIterator operator++(int){
-            ConstIterator it = *this;
-            this->ptr = this->ptr->next;
-            return it;
-        }
-    };
-
-    Node *head, *tail;
+    Node beforeHead;
     size_t count;
 
 public:
-    using iterator = Iterator;
-    using const_iterator = ConstIterator;
+    using iterator = Iterator<Node>;
+    using const_iterator = Iterator<ConstNode>;
     using size_type = size_t;
 
-    ForwardList() : head(nullptr), tail(nullptr), count(0) {}
+    ForwardList() : beforeHead({0, nullptr}), count(0) {}
 
-    void push_back(const Type &value);
+    void push_front(const Type &value);
     void pop_front();
-    void insert(const_iterator it, const Type &value);
-    void erase(const_iterator it);
+    iterator insert_after(const_iterator pos, const Type &value);
+    iterator erase_after(const_iterator pos);
     void clear();
 
-    iterator begin() const { return iterator(this->head); }
-    iterator end() const { return iterator(this->tail->next); }
-    const_iterator cbegin() const { return const_iterator(this->head); }
-    const_iterator cend() const { return const_iterator(this->tail->next); }
-    size_type size() const { return this->count; }
+    template<typename Compare>
+    void sort(Compare comp);
+    void sort() { sort([](const Type &a, const Type &b) -> bool { return a < b; }); }
+    void reverse();
 
+    iterator before_begin() const { return iterator(&this->beforeHead); }
+    iterator begin() const { return iterator(this->beforeHead.next); }
+    iterator end() const { return iterator(nullptr); }
+    const_iterator cbefore_begin() const { return const_iterator(&this->beforeHead); }
+    const_iterator cbegin() const { return const_iterator(this->beforeHead->next); }
+    const_iterator cend() const { return const_iterator(nullptr); }
+    size_type size() const { return this->count; }
+    
     ~ForwardList() { this->clear(); }
 };
 
 
 template<typename Type>
-void ForwardList<Type>::push_back(const Type &value)
+void ForwardList<Type>::push_front(const Type &value)
 {
     this->count++;
 
-    if(this->head == nullptr){
-        this->head = this->tail = new Node;
-    }
-    else{
-        this->tail->next = new Node;
-        this->tail = this->tail->next;
-    }
-
-    this->tail->data = value;
-    this->tail->next = nullptr;
+    Node *&head = this->beforeHead.next;
+    head = new Node{value, head};
 }
 
 
@@ -113,76 +96,39 @@ void ForwardList<Type>::pop_front()
 {
     this->count--;
 
-    if(this->head == nullptr){
-        return;
-    }
+    Node *&head = this->beforeHead.next;
 
-    if(this->head == this->tail){
-        delete this->head;
-        this->head = this->tail = nullptr;
+    if(head != nullptr){
+        Node *tmp = head;
+        head = head->next;
+        delete tmp;
     }
-
-    Node *tmp = this->head;
-    this->head = tmp->next;
-    delete tmp;
 }
 
 
 template<typename Type>
-void ForwardList<Type>::insert(const_iterator it, const Type &value)
+auto ForwardList<Type>::insert_after(const_iterator pos, const Type &value) -> iterator
 {
     this->count++;
 
-    auto current = reinterpret_cast<const Node *>(&(*it));
+    auto current = reinterpret_cast<Node *>(pos.ptr);
+    current->next = new Node{value, current->next};
 
-    Node *newNode = new Node;
-    newNode->data = value;
-
-    if(current == this->head){
-        newNode->next = this->head;
-        this->head = newNode;
-    }
-    else{
-        Node *prev;
-        for(
-            prev = this->head;
-            prev->next != current;
-            prev = prev->next
-        );
-
-        newNode->next = prev->next;
-        prev->next = newNode;
-    }
+    return iterator(current->next);
 }
 
 
 template<typename Type>
-void ForwardList<Type>::erase(const_iterator it)
+auto ForwardList<Type>::erase_after(const_iterator pos) -> iterator
 {
     this->count--;
 
-    auto current = reinterpret_cast<const Node *>(&(*it));
+    auto current = reinterpret_cast<Node *>(pos.ptr);
+    Node *tmp = current->next;
+    current->next = tmp->next;
+    delete tmp;
 
-    if(current == this->head){
-        this->pop_front();
-        return;
-    }
-
-    Node *prev;
-    for(
-        prev = this->head;
-        prev->next != current;
-        prev = prev->next
-    );
-
-    if(current == this->tail){
-        prev->next = nullptr;
-    }
-    else{
-        prev->next = prev->next->next;
-    }
-
-    delete current;
+    return iterator(current->next);
 }
 
 
@@ -191,18 +137,85 @@ void ForwardList<Type>::clear()
 {
     this->count = 0;
 
+    Node *&head = this->beforeHead.next;
     std::function<void (Node *)> freeNext;
 
-    freeNext = [&, this] (Node *ptr) -> void{
-        if(ptr != this->tail){
-            freeNext(ptr->next);
+    freeNext = [&] (Node *node) -> void{
+        if(node->next != nullptr){
+            freeNext(node->next);
         }
 
-        delete ptr;
+        delete node;
     };
 
-    if(this->head != nullptr){
-        freeNext(this->head);
-        this->head = this->tail = nullptr;
+    if(head != nullptr){
+        freeNext(head);
+        head = nullptr;
     }
+}
+
+
+template<typename Type>
+template<typename Compare>
+void ForwardList<Type>::sort(Compare comp)
+{
+    Node *&head = this->beforeHead.next;
+    Node *newHead = head;
+
+    if(head == nullptr){
+        return;
+    }
+
+    head = head->next;
+    newHead->next = nullptr;
+
+    while(head != nullptr){
+        auto current = head;
+        head = head->next;
+
+        if(comp(current->data, newHead->data)){
+            current->next = newHead;
+            newHead = current;
+        }
+        else{
+            bool inserted = false;
+            auto it = newHead;
+
+            while((it->next != nullptr) && (!inserted)){
+                auto pos = it;
+                it = it->next;
+
+                if(comp(current->data, pos->next->data)){
+                    current->next = pos->next;
+                    pos->next = current;
+                    inserted = true;
+                }
+            }
+
+            if(!inserted){
+                it->next = current;
+                current->next = nullptr;
+            }
+        }
+    }
+
+    head = newHead;
+}
+
+
+template<typename Type>
+void ForwardList<Type>::reverse()
+{
+    Node *&head = this->beforeHead.next;
+    Node *newHead = nullptr;
+
+    while(head != nullptr){
+        auto current = head;
+        head = head->next;
+
+        current->next = newHead;
+        newHead = current;
+    }
+
+    head = newHead;
 }

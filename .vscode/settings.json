@@ -43,7 +43,8 @@
         "ctime": "cpp",
         "functional": "cpp",
         "iterator": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "forward_list": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

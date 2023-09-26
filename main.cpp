@@ -5,16 +5,24 @@ int main()
 {
     ForwardList<int> fl;
 
-    fl.push_back(9);
-    fl.push_back(8);
-    fl.insert(fl.begin(), 7);
+    fl.push_front(1);
+    fl.push_front(6);
+    fl.push_front(8);
+    fl.push_front(7);
+    fl.insert_after(fl.begin(), 2);
 
-    for(auto val : fl){
-        std::cout << val << std::endl;
-    }
+    auto printList = [] <typename ListLike> (const ListLike &list) {
+        for(auto val : list){
+            std::cout << val << ' ';
+        }
+        std::cout << std::endl;
+    };
 
-    fl.clear();
-    std::cout << fl.size() << std::endl;
+    printList(fl);
+    fl.sort();
+    printList(fl);
+    fl.reverse();
+    printList(fl);
 
     std::cin.get();
 }
