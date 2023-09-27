@@ -1,5 +1,6 @@
-#include<iostream>
-#include<functional>
+#include <iostream>
+#include <functional>
+
 
 template<typename Type>
 class ForwardList
@@ -21,7 +22,7 @@ private:
         NodeType *ptr;
 
     public:
-        explicit Iterator(NodeType *ptr) : ptr(ptr) {}
+        explicit Iterator(const NodeType *ptr) : ptr(const_cast<NodeType *>(ptr)) {}
         Iterator(const Iterator &it) : ptr(it.ptr) {}
         template<typename OtherNodeType>
         Iterator(const Iterator<OtherNodeType> &it)
@@ -45,6 +46,8 @@ private:
             return it;
         }
 
+        Iterator next() const { return Iterator(this->ptr->next); }
+
         friend class ForwardList;
     };
 
@@ -57,18 +60,24 @@ public:
     using size_type = size_t;
 
     ForwardList() : beforeHead({0, nullptr}), count(0) {}
+    ForwardList(const ForwardList &fl);
+    const ForwardList &operator=(const ForwardList &) = delete;
 
     void push_front(const Type &value);
     void pop_front();
     iterator insert_after(const_iterator pos, const Type &value);
     iterator erase_after(const_iterator pos);
+    void remove(const Type &value);
     void clear();
 
     template<typename Compare>
     void sort(Compare comp);
     void sort() { sort([](const Type &a, const Type &b) -> bool { return a < b; }); }
     void reverse();
+    template<typename CutIf>
+    std::array<ForwardList, 2> split(CutIf cutIf) const;
 
+    const Type &front() const { return this->beforeHead->next->data; }
     iterator before_begin() const { return iterator(&this->beforeHead); }
     iterator begin() const { return iterator(this->beforeHead.next); }
     iterator end() const { return iterator(nullptr); }
@@ -79,6 +88,20 @@ public:
     
     ~ForwardList() { this->clear(); }
 };
+
+
+template<typename Type>
+ForwardList<Type>::ForwardList(const ForwardList<Type> &fl)
+    : beforeHead({0, nullptr}), count(fl.count)
+{
+    Node *current = nullptr;
+
+    for(auto val : fl){
+        current = new Node{val, current};
+    }
+
+    this->beforeHead.next = current;
+}
 
 
 template<typename Type>
@@ -129,6 +152,23 @@ auto ForwardList<Type>::erase_after(const_iterator pos) -> iterator
     delete tmp;
 
     return iterator(current->next);
+}
+
+
+template<typename Type>
+void ForwardList<Type>::remove(const Type &value)
+{
+    auto it = this->before_begin();
+
+    while(it.next() != this->end()){
+        if(value == *it.next()){
+            this->erase_after(it);
+            this->count--;
+        }
+        else{
+            it++;
+        }
+    }
 }
 
 
@@ -218,4 +258,29 @@ void ForwardList<Type>::reverse()
     }
 
     head = newHead;
+}
+
+template<typename Type>
+template<typename CutIf>
+std::array<ForwardList<Type>, 2> ForwardList<Type>::split(CutIf cutIf) const
+{
+    ForwardList<Type> frist = *this, second;
+    Node *current = &frist.beforeHead, *pos = &second.beforeHead;
+
+    while(current->next != nullptr){
+        if(cutIf(current->next->data)){
+            pos->next = current->next;
+            pos = pos->next;
+            current->next = pos->next;
+            pos->next = nullptr;
+
+            frist.count--;
+            second.count++;
+        }
+        else{
+            current = current->next;
+        }
+    }
+
+    return {frist, second};
 }
