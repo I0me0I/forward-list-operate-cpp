@@ -9,7 +9,7 @@
 ### 功能说明
 - - - - - - - - - - - -
 
-![图片](./listoper.png "链表操作菜单")
+![图片](./img/listoper.png "链表操作菜单")
 
 1. 创建链表  
 输入多个正整数以创建链表，以 -1 结尾。每个正整数将被依次插入链表的头部，因此链表元素的次序将与输入的次序相反。此操作将清空之前已有的链表节点。
@@ -70,7 +70,7 @@
 
 ```shell
 cd /path/to/project
-g++ -g ./source/*.cpp -o grademanager.exe -fexec-charset=GBK
+g++ -g listoper.cpp main.cpp -o grademanager.exe -fexec-charset=GBK
 ```
 
 项目报告使用 markdown 编写，为了便于老师阅读，已转换为 html 和 pdf 格式（即`报告.html`和`报告.pdf`），建议阅读 html 版本。  
@@ -78,7 +78,7 @@ g++ -g ./source/*.cpp -o grademanager.exe -fexec-charset=GBK
 #### 功能实现
 该项目的类图：
 
-![图片](./class.svg "项目listoper的类图")
+![图片](./img/class.svg "项目listoper的类图")
 
 `ForwardList`模板类实现了单向链表数据结构，包括插入、删除元素等功能，相当于简化版的`std::forward_list`。  
 `ListOperate`类实现了单向链表的一些基础操作，并提供了文字用户界面。
