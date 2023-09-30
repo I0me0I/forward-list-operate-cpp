@@ -70,9 +70,8 @@ public:
     void remove(const Type &value);
     void clear();
 
-    template<typename Compare>
-    void sort(Compare comp);
-    void sort() { sort([](const Type &a, const Type &b) -> bool { return a < b; }); }
+    template<typename Compare = decltype(std::less<Type>())>
+    void sort(Compare comp = std::less<Type>());
     void reverse();
     template<typename CutIf>
     std::array<ForwardList, 2> split(CutIf cutIf) const;
@@ -161,7 +160,7 @@ void ForwardList<Type>::remove(const Type &value)
     auto it = this->before_begin();
 
     while(it.next() != this->end()){
-        if(value == *it.next()){
+        if(*it.next() == value){
             this->erase_after(it);
             this->count--;
         }

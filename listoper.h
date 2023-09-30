@@ -14,7 +14,7 @@ private:
     }
 
     void pause(const char *str) const{
-        std::cout << str << "，按任意键返回。。。";
+        std::cout << str << "，按Enter键返回。。。";
         this->clearInput();
         std::cin.get();
     }

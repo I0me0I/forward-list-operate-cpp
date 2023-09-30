@@ -19,7 +19,7 @@ void ListOperate::orderedInsert(int value)
     auto it = this->list.before_begin();
 
     while(it.next() != this->list.end()){
-        if(value < *it.next()){
+        if(*it.next() >= value){
             this->list.insert_after(it, value);
             return;
         }
